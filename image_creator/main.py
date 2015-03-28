@@ -22,7 +22,7 @@ snf-image-creator program.
 
 from image_creator import __version__ as version
 from image_creator.disk import Disk
-from image_creator.util import FatalError
+from image_creator.util import FatalError, ensure_root
 from image_creator.output.cli import SilentOutput, SimpleOutput, \
     OutputWthProgress
 from image_creator.output.composite import CompositeOutput
@@ -38,6 +38,8 @@ import textwrap
 import tempfile
 import subprocess
 import time
+
+PROGNAME = os.path.basename(sys.argv[0])
 
 
 def check_writable_dir(option, opt_str, value, parser):
@@ -222,9 +224,7 @@ def parse_options(input_args):
 def image_creator(options, out):
     """snf-mkimage main function"""
 
-    if os.geteuid() != 0:
-        raise FatalError("You must run %s as root"
-                         % os.path.basename(sys.argv[0]))
+    ensure_root(PROGNAME)
 
     # Check if the authentication info is valid. The earlier the better
     if options.token is not None and options.url is not None:

@@ -23,6 +23,7 @@ import sh
 import time
 import os
 import re
+import sys
 import json
 import tempfile
 
@@ -131,6 +132,12 @@ def virtio_versions(virtio_state):
         ret[name] = "<not found>" if len(infs) == 0 else ", ".join(vers)
 
     return ret
+
+
+def ensure_root(progname):
+    if os.geteuid() != 0:
+        sys.stderr.write("Error: %s requires root privileges\n" % progname)
+        sys.exit(2)
 
 
 class QemuNBD(object):

@@ -32,7 +32,7 @@ import traceback
 import tempfile
 
 from image_creator import __version__ as version
-from image_creator.util import FatalError
+from image_creator.util import FatalError, ensure_root
 from image_creator.output.cli import SimpleOutput
 from image_creator.output.dialog import GaugeOutput
 from image_creator.output.composite import CompositeOutput
@@ -245,10 +245,6 @@ def dialog_main(media, **kwargs):
 
 def main():
     """Entry Point"""
-    if os.geteuid() != 0:
-        sys.stderr.write("Error: You must run %s as root\n" % PROGNAME)
-        sys.exit(2)
-
     usage = "Usage: %prog [options] [<input_media>]"
     parser = optparse.OptionParser(version=version, usage=usage)
     parser.add_option("-l", "--logfile", type="string", dest="logfile",
@@ -266,8 +262,10 @@ def main():
 
     opts, args = parser.parse_args(sys.argv[1:])
 
+    ensure_root(PROGNAME)
+
     if len(args) > 1:
-        parser.error("Wrong number of arguments")
+        parser.error("Too many arguments. Please see output of `--help'.")
 
     media = args[0] if len(args) == 1 else None
 
