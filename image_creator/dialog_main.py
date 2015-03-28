@@ -25,7 +25,7 @@ import dialog
 import sys
 import os
 import signal
-import optparse
+import argparse
 import types
 import termios
 import traceback
@@ -245,46 +245,59 @@ def dialog_main(media, **kwargs):
 
 def main():
     """Entry Point"""
-    usage = "Usage: %prog [options] [<input_media>]"
-    parser = optparse.OptionParser(version=version, usage=usage)
-    parser.add_option("-l", "--logfile", type="string", dest="logfile",
-                      default=None, help="log all messages to FILE",
-                      metavar="FILE")
-    parser.add_option("--no-snapshot", dest="snapshot", default=True,
-                      help="don't snapshot the input media. (THIS IS "
-                      "DANGEROUS AS IT WILL ALTER THE ORIGINAL MEDIA!!!)",
-                      action="store_false")
-    parser.add_option("--syslog", dest="syslog", default=False,
-                      help="log to syslog", action="store_true")
-    parser.add_option("--tmpdir", type="string", dest="tmp", default=None,
-                      help="create large temporary image files under DIR",
-                      metavar="DIR")
+    d = ("Create a cloud Image from the specified INPUT_MEDIA."
+         " INPUT_MEDIA must be the hard disk of an existing OS deployment"
+         " to be used as the template for Image creation. Supported formats"
+         " include raw block devices, all disk image file formats supported"
+         " by QEMU (e.g., QCOW2, VMDK, VDI, VHD), or the filesystem of the"
+         " host itself. The resulting Image is meant to be used with Synnefo"
+         " and other IaaS cloud platforms. Note this program works on a"
+         " snapshot of INPUT_MEDIA, and will not modify its contents.")
+    e = ("%(prog)s requires root privileges.")
 
-    opts, args = parser.parse_args(sys.argv[1:])
+    parser = argparse.ArgumentParser(version=version, description=d, epilog=e)
+
+    parser.add_argument("-l", "--logfile", metavar="FILE", type=str,
+                        dest="logfile", default=None,
+                        help="Log all messages to FILE")
+    parser.add_argument("--syslog", dest="syslog", default=False,
+                        help="Also log to syslog", action="store_true")
+    parser.add_argument("--tmpdir", metavar="DIR", type=str, dest="tmpdir",
+                        default=None,
+                        help="Create large temporary image files under DIR")
+    parser.add_argument("--no-snapshot", dest="snapshot", default=True,
+                        action="store_false",
+                        help=("Do not work on a snapshot, but modify the input"
+                              " media directly instead. DO NOT USE THIS OPTION"
+                              " UNLESS YOU REALLY KNOW WHAT YOU ARE DOING."
+                             " THIS WILL ALTER THE ORIGINAL MEDIA!"))
+    parser.add_argument(metavar="INPUT_MEDIA",
+                        nargs='?', dest="media", type=str, default=None,
+                        help=("Use INPUT_MEDIA as the template for"
+                              " Image creation, e.g., /dev/sdc, /disk0.vmdk."
+                              " Specify a single slash character (/) to bundle"
+                              " the filesystem of the host itself."))
+
+    args = parser.parse_args()
 
     ensure_root(PROGNAME)
 
-    if len(args) > 1:
-        parser.error("Too many arguments. Please see output of `--help'.")
-
-    media = args[0] if len(args) == 1 else None
-
-    if opts.tmp is not None and not os.path.isdir(opts.tmp):
-        parser.error("Directory: `%s' specified with --tmpdir is not valid"
-                     % opts.tmp)
+    if args.tmpdir is not None and not os.path.isdir(args.tmpdir):
+        parser.error("Argument `%s' to --tmpdir must be a directory"
+                     % args.tmpdir)
 
     try:
-        logfile = open(opts.logfile, 'w') if opts.logfile is not None else None
+        logfile = open(args.logfile, 'w') if args.logfile is not None else None
     except IOError as error:
         parser.error("Unable to open logfile `%s' for writing. Reason: %s" %
-                     (opts.logfile, error.strerror))
+                     (args.logfile, error.strerror))
 
     try:
         # Save the terminal attributes
         attr = termios.tcgetattr(sys.stdin.fileno())
         try:
-            ret = dialog_main(media, logfile=logfile, tmpdir=opts.tmp,
-                              snapshot=opts.snapshot, syslog=opts.syslog)
+            ret = dialog_main(args.media, logfile=logfile, tmpdir=args.tmpdir,
+                              snapshot=args.snapshot, syslog=args.syslog)
         finally:
             # Restore the terminal attributes. If an error occurs make sure
             # that the terminal turns back to normal.
