@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""This module is the entrance point for the dialog-based version of the
+"""This module is the entry point for the dialog-based version of the
 snf-image-creator program. The main function will create a dialog where the
 user is asked if he wants to use the program in expert or wizard mode.
 """
@@ -244,7 +244,7 @@ def dialog_main(media, **kwargs):
 
 
 def main():
-    """Entrance Point"""
+    """Entry Point"""
     if os.geteuid() != 0:
         sys.stderr.write("Error: You must run %s as root\n" % PROGNAME)
         sys.exit(2)

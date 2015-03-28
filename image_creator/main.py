@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""This module is the entrance point for the non-interactive version of the
+"""This module is the entry point for the non-interactive version of the
 snf-image-creator program.
 """
 
