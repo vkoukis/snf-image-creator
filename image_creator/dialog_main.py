@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011-2015 GRNET S.A.
+# Copyright (C) 2015 Vangelis Koukis <vkoukis@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,6 +28,7 @@ import os
 import signal
 import argparse
 import types
+import time
 import termios
 import traceback
 import tempfile
@@ -292,28 +294,57 @@ def main():
         parser.error("Unable to open logfile `%s' for writing. Reason: %s" %
                      (args.logfile, error.strerror))
 
+    # Ensure we run on a terminal, so we can use termios calls liberally
+    if not (os.isatty(sys.stdin.fileno()) and os.isatty(sys.stdout.fileno())):
+        sys.stderr.write(("Error: This program is interactive and requires a"
+                          "terminal for standard input and output."))
+        sys.exit(2)
+
+    # Save the terminal attributes
+    attr = termios.tcgetattr(sys.stdin.fileno())
+
     try:
-        # Save the terminal attributes
-        attr = termios.tcgetattr(sys.stdin.fileno())
         try:
             ret = dialog_main(args.medium, logfile=logfile, tmpdir=args.tmpdir,
                               snapshot=args.snapshot, syslog=args.syslog)
         finally:
             # Restore the terminal attributes. If an error occurs make sure
             # that the terminal turns back to normal.
-            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, attr)
+
+            # This is an ugly hack:
+            #
+            # It seems resetting the terminal after using dialog
+            # races with printing the text of the exception,
+            # and overwrites it with the dialog background.
+            #
+            # Sleep for a tiny amount of time to ensure
+            # the exception is visible.
+            #
+            # This code path is ugly and must be replaced:
+            #
+            # Logging should be mandatory, since we have a temporary directory
+            # anyway, and all logging output should go there.
+            time.sleep(0.5)
+            termios.tcflush(sys.stdin.fileno(), termios.TCIOFLUSH)
+            termios.tcsetattr(sys.stdin.fileno(), termios.TCSANOW, attr)
     except:
-        # Clear the screen
+        # Clear the screen and output the traceback
+        sys.stdout.flush()
         sys.stdout.write('\033[2J')  # Erase Screen
         sys.stdout.write('\033[H')  # Cursor Home
         sys.stdout.flush()
 
         exception = traceback.format_exc()
+        sys.stderr.write("An unexpected exception has occured. Please"
+                         " include the following text in any bug report:\n\n")
         sys.stderr.write(exception)
+        sys.stderr.flush()
+
         if logfile is not None:
             logfile.write(exception)
 
         sys.exit(3)
+
     finally:
         if logfile is not None:
             logfile.close()
