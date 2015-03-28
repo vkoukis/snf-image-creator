@@ -100,9 +100,9 @@ class Image(object):
             self.size = self.g.blockdev_getsize64(self.guestfs_device)
 
             if len(roots) > 1:
-                reason = "Multiple operating systems found on the media."
+                reason = "Multiple operating systems found on the medium."
             else:
-                reason = "Unable to detect any operating system on the media."
+                reason = "Unable to detect any operating system on the medium."
 
             self.set_unsupported(reason)
             return
@@ -126,7 +126,7 @@ class Image(object):
 
         self._unsupported = reason
         self.meta['UNSUPPORTED'] = reason
-        self.out.warn('Media is not supported. Reason: %s' % reason)
+        self.out.warn('Medium is not supported. Reason: %s' % reason)
 
     def is_unsupported(self):
         """Returns if this image is unsupported"""

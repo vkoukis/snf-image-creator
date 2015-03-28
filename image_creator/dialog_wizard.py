@@ -376,7 +376,7 @@ def start_wizard(session):
             dialog = session['dialog']
             title = "VirtIO driver missing"
             msg = "Image creation cannot proceed unless a VirtIO %s driver " \
-                  "is installed on the media!"
+                  "is installed on the medium."
             if not (viostor or new_viostor):
                 dialog.msgbox(msg % "Block Device", width=PAGE_WIDTH,
                               height=PAGE_HEIGHT, title=title)

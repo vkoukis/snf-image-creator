@@ -307,7 +307,7 @@ class OSBase(object):
         del self._cleanup_jobs[namespace]
 
     def inspect(self):
-        """Inspect the media to check if it is supported"""
+        """Inspect the medium to check if it is supported"""
 
         if self.image.is_unsupported():
             return
@@ -454,7 +454,7 @@ class OSBase(object):
 
         if self.image.is_unsupported():
             self.out.warn(
-                "System preparation is disabled for unsupported media")
+                "System preparation is disabled for unsupported medium")
             return
 
         enabled = [s for s in self.list_syspreps() if self.sysprep_enabled(s)]
@@ -499,7 +499,7 @@ class OSBase(object):
             """The Mount context manager"""
             def __enter__(self):
                 mount_type = 'read-only' if readonly else 'read-write'
-                output("Mounting the media %s ..." % mount_type, False)
+                output("Mounting the medium %s ..." % mount_type, False)
 
                 parent._mount_error = ""
                 del parent._mount_warnings[:]
@@ -511,7 +511,7 @@ class OSBase(object):
                     raise
 
                 if not parent.ismounted:
-                    msg = "Unable to mount the media %s. Reason: %s" % \
+                    msg = "Unable to mount the medium %s. Reason: %s" % \
                         (mount_type, parent._mount_error)
                     if fatal:
                         raise FatalError(msg)
@@ -525,7 +525,7 @@ class OSBase(object):
                     success('done')
 
             def __exit__(self, exc_type, exc_value, traceback):
-                output("Umounting the media ...", False)
+                output("Umounting the medium ...", False)
                 parent.image.g.umount_all()
                 parent._mounted = False
                 success('done')

@@ -46,13 +46,13 @@ from image_creator.dialog_util import WIDTH, confirm_exit, Reset, \
 PROGNAME = os.path.basename(sys.argv[0])
 
 
-def create_image(d, media, out, tmp, snapshot):
-    """Create an image out of `media'"""
+def create_image(d, medium, out, tmp, snapshot):
+    """Create an image out of `medium'"""
     d.setBackgroundTitle('snf-image-creator')
 
     gauge = GaugeOutput(d, "Initialization", "Initializing...")
     out.append(gauge)
-    disk = Disk(media, out, tmp)
+    disk = Disk(medium, out, tmp)
 
     def signal_handler(signum, frame):
         gauge.cleanup()
@@ -83,7 +83,7 @@ def create_image(d, media, out, tmp, snapshot):
             session['excluded_tasks'] = [-1]
             session['task_metadata'] = ["EXCLUDE_ALL_TASKS"]
 
-            msg = "The system on the input media is not supported." \
+            msg = "The system on the input medium is not supported." \
                 "\n\nReason: %s\n\n" \
                 "We highly recommend not to create an image out of this, " \
                 "since the image won't be cleaned up and you will not be " \
@@ -97,7 +97,7 @@ def create_image(d, media, out, tmp, snapshot):
             d.infobox("Thank you for using snf-image-creator. Bye", width=53)
             return 0
 
-        msg = "snf-image-creator detected a %s system on the input media. " \
+        msg = "snf-image-creator detected a %s system on the input medium. " \
               "Would you like to run a wizard to assist you through the " \
               "image creation process?\n\nChoose <Wizard> to run the wizard," \
               " <Expert> to run snf-image-creator in expert mode or press " \
@@ -161,7 +161,7 @@ def _dialog_form(self, text, height=20, width=60, form_height=15, fields=[],
     return (code, output.splitlines())
 
 
-def dialog_main(media, **kwargs):
+def dialog_main(medium, **kwargs):
     """Main function for the dialog-based version of the program"""
 
     tmpdir = kwargs['tmpdir'] if 'tmpdir' in kwargs else None
@@ -197,13 +197,13 @@ def dialog_main(media, **kwargs):
 
     d.setBackgroundTitle('snf-image-creator')
 
-    # Pick input media
+    # Pick input medium
     while True:
-        media = select_file(d, init=media, ftype="br", bundle_host=True,
-                            title="Please select an input media.")
-        if media is None:
+        medium = select_file(d, init=medium, ftype="br", bundle_host=True,
+                            title="Please select an input medium.")
+        if medium is None:
             if confirm_exit(
-                    d, "You canceled the media selection dialog box."):
+                    d, "You canceled the medium selection dialog box."):
                 return 0
             continue
         break
@@ -222,7 +222,7 @@ def dialog_main(media, **kwargs):
             try:
                 out = CompositeOutput(logs)
                 out.info("Starting %s v%s ..." % (PROGNAME, version))
-                ret = create_image(d, media, out, tmpdir, snapshot)
+                ret = create_image(d, medium, out, tmpdir, snapshot)
                 break
             except Reset:
                 for log in logs:
@@ -245,14 +245,14 @@ def dialog_main(media, **kwargs):
 
 def main():
     """Entry Point"""
-    d = ("Create a cloud Image from the specified INPUT_MEDIA."
-         " INPUT_MEDIA must be the hard disk of an existing OS deployment"
+    d = ("Create a cloud Image from the specified INPUT_MEDIUM."
+         " INPUT_MEDIUM must be the hard disk of an existing OS deployment"
          " to be used as the template for Image creation. Supported formats"
          " include raw block devices, all disk image file formats supported"
          " by QEMU (e.g., QCOW2, VMDK, VDI, VHD), or the filesystem of the"
          " host itself. The resulting Image is meant to be used with Synnefo"
          " and other IaaS cloud platforms. Note this program works on a"
-         " snapshot of INPUT_MEDIA, and will not modify its contents.")
+         " snapshot of INPUT_MEDIUM, and will not modify its contents.")
     e = ("%(prog)s requires root privileges.")
 
     parser = argparse.ArgumentParser(version=version, description=d, epilog=e)
@@ -268,12 +268,12 @@ def main():
     parser.add_argument("--no-snapshot", dest="snapshot", default=True,
                         action="store_false",
                         help=("Do not work on a snapshot, but modify the input"
-                              " media directly instead. DO NOT USE THIS OPTION"
-                              " UNLESS YOU REALLY KNOW WHAT YOU ARE DOING."
-                             " THIS WILL ALTER THE ORIGINAL MEDIA!"))
-    parser.add_argument(metavar="INPUT_MEDIA",
-                        nargs='?', dest="media", type=str, default=None,
-                        help=("Use INPUT_MEDIA as the template for"
+                              " medium directly instead. DO NOT USE THIS"
+                              " OPTION UNLESS YOU REALLY KNOW WHAT YOU ARE"
+                             " DOING. THIS WILL ALTER THE ORIGINAL MEDIUM!"))
+    parser.add_argument(metavar="INPUT_MEDIUM",
+                        nargs='?', dest="medium", type=str, default=None,
+                        help=("Use INPUT_MEDIUM as the template for"
                               " Image creation, e.g., /dev/sdc, /disk0.vmdk."
                               " Specify a single slash character (/) to bundle"
                               " the filesystem of the host itself."))
@@ -296,7 +296,7 @@ def main():
         # Save the terminal attributes
         attr = termios.tcgetattr(sys.stdin.fileno())
         try:
-            ret = dialog_main(args.media, logfile=logfile, tmpdir=args.tmpdir,
+            ret = dialog_main(args.medium, logfile=logfile, tmpdir=args.tmpdir,
                               snapshot=args.snapshot, syslog=args.syslog)
         finally:
             # Restore the terminal attributes. If an error occurs make sure

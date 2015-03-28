@@ -57,7 +57,7 @@ def check_writable_dir(option, opt_str, value, parser):
 
 def parse_options(input_args):
     """Parse input parameters"""
-    usage = "Usage: %prog [options] <input_media>"
+    usage = "Usage: %prog [options] <input_medium>"
     parser = optparse.OptionParser(version=version, usage=usage)
 
     parser.add_option("-a", "--authentication-url", dest="url", type="string",
@@ -65,7 +65,7 @@ def parse_options(input_args):
                       "uploading/registering images")
 
     parser.add_option("--allow-unsupported", dest="allow_unsupported",
-                      help="proceed with the image creation even if the media "
+                      help="proceed with image creation even if the medium "
                       "is not supported", default=False, action="store_true")
 
     parser.add_option("-c", "--cloud", dest="cloud", type="string",
@@ -75,11 +75,11 @@ def parse_options(input_args):
 
     parser.add_option("--disable-sysprep", dest="disabled_syspreps",
                       help="prevent SYSPREP operation from running on the "
-                      "input media", default=[], action="append",
+                      "input medium", default=[], action="append",
                       metavar="SYSPREP")
 
     parser.add_option("--enable-sysprep", dest="enabled_syspreps", default=[],
-                      help="run SYSPREP operation on the input media",
+                      help="run SYSPREP operation on the input medium",
                       action="append", metavar="SYSPREP")
 
     parser.add_option("-f", "--force", dest="force", default=False,
@@ -87,8 +87,8 @@ def parse_options(input_args):
                       help="overwrite output files if they exist")
 
     parser.add_option("--host-run", dest="host_run", default=[],
-                      help="mount the media in the host and run a script "
-                      "against the guest media. This option may be defined "
+                      help="mount the medium in the host and run a script "
+                      "against the guest medium. This option may be defined "
                       "multiple times. The script's working directory will be "
                       "the guest's root directory. BE CAREFUL! DO NOT USE "
                       "ABSOLUTE PATHS INSIDE THE SCRIPT! YOU MAY HARM YOUR "
@@ -103,8 +103,8 @@ def parse_options(input_args):
                       action="append", metavar="KEY=VALUE")
 
     parser.add_option("--no-snapshot", dest="snapshot", default=True,
-                      help="don't snapshot the input media. (THIS IS "
-                      "DANGEROUS AS IT WILL ALTER THE ORIGINAL MEDIA!!!)",
+                      help="don't snapshot the input medium. (THIS IS "
+                      "DANGEROUS AS IT WILL ALTER THE ORIGINAL MEDIUM!!!)",
                       action="store_false")
 
     parser.add_option("--no-sysprep", dest="sysprep", default=True,
@@ -121,12 +121,12 @@ def parse_options(input_args):
 
     parser.add_option("--print-syspreps", dest="print_syspreps", default=False,
                       help="print the enabled and disabled system preparation "
-                      "operations for this input media", action="store_true")
+                      "operations for this input medium", action="store_true")
 
     parser.add_option("--print-sysprep-params", dest="print_sysprep_params",
                       default=False, action="store_true",
                       help="print the defined system preparation parameters "
-                      "for this input media")
+                      "for this input medium")
 
     parser.add_option("--public", dest="public", default=False,
                       help="register image with the cloud as public",
@@ -165,7 +165,7 @@ def parse_options(input_args):
 
     options.source = args[0]
     if not os.path.exists(options.source):
-        parser.error("Input media `%s' is not accessible" % options.source)
+        parser.error("Input medium `%s' is not accessible" % options.source)
 
     if options.register and not options.upload:
         parser.error("You also need to set -u when -r option is set")
@@ -275,15 +275,15 @@ def image_creator(options, out):
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     try:
-        # There is no need to snapshot the media if it was created by the Disk
+        # There is no need to snapshot the medium if it was created by the Disk
         # instance as a temporary object.
         device = disk.file if not options.snapshot else disk.snapshot()
         image = disk.get_image(device, sysprep_params=options.sysprep_params)
 
         if image.is_unsupported() and not options.allow_unsupported:
             raise FatalError(
-                "The media seems to be unsupported.\n\n" +
-                textwrap.fill("To create an image from an unsupported media, "
+                "The medium seems to be unsupported.\n\n" +
+                textwrap.fill("To create an image from an unsupported medium, "
                               "you'll need to use the`--allow-unsupported' "
                               "command line option. Using this is highly "
                               "discouraged, since the resulting image will "
@@ -291,7 +291,7 @@ def image_creator(options, out):
                               "not get customized during the deployment."))
 
         if len(options.host_run) != 0 and not image.mount_local_support:
-            raise FatalError("Running scripts against the guest media is not "
+            raise FatalError("Running scripts against the guest medium is not "
                              "supported for this build of libguestfs.")
 
         if len(options.host_run) != 0:
@@ -337,12 +337,12 @@ def image_creator(options, out):
             image.os.install_virtio_drivers()
 
         if len(options.host_run) != 0:
-            out.info("Running scripts on the input media:")
+            out.info("Running scripts on the input medium:")
             mpoint = tempfile.mkdtemp()
             try:
                 image.mount(mpoint)
                 if not image.is_mounted():
-                    raise FatalError("Mounting the media on the host failed.")
+                    raise FatalError("Mounting the medium on the host failed.")
                 try:
                     size = len(options.host_run)
                     cnt = 1
@@ -357,7 +357,7 @@ def image_creator(options, out):
                         cnt += 1
                 finally:
                     while not image.umount():
-                        out.warn("Unable to umount the media. Retrying ...")
+                        out.warn("Unable to umount the medium. Retrying ...")
                         time.sleep(1)
                     out.info()
             finally:

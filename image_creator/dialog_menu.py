@@ -742,7 +742,7 @@ def sysprep_params(session):
 
 
 def virtio(session):
-    """Display the state of the VirtIO drivers in the media"""
+    """Display the state of the VirtIO drivers in the medium"""
 
     d = session['dialog']
     image = session['image']
@@ -758,7 +758,7 @@ def virtio(session):
 
         (code, choice) = d.menu(
             "In this menu you can see details about the installed VirtIO "
-            "drivers on the input media. Press <Info> to see more information "
+            "drivers on the input medium. Press <Info> to see more info "
             "about a specific installed driver or <Update> to install one or "
             "more new drivers.", height=16, width=WIDTH, choices=choices,
             ok_label="Info", menu_height=len(choices), cancel="Back",

@@ -271,7 +271,7 @@ class Windows(OSBase):
         self.registry = Registry(self.image)
 
         with self.mount(readonly=True, silent=True):
-            self.out.info("Checking media state ...", False)
+            self.out.info("Checking medium state ...", False)
 
             # Enumerate the windows users
             (self.usernames,
@@ -429,7 +429,7 @@ class Windows(OSBase):
 
         querymax = int(querymax)
         if querymax == 0:
-            self.out.warn("Unable to reclaim any space. The media is full.")
+            self.out.warn("Unable to reclaim any space. The medium is full.")
             return
 
         # Not sure if we should use 1000 or 1024 here
@@ -469,7 +469,7 @@ class Windows(OSBase):
 
         if rc != 0:
             raise FatalError(
-                "Shrinking failed. Please make sure the media is defragged.")
+                "Shrinking failed. Please make sure the medium is defragged.")
 
         for line in stdout.splitlines():
             if line.find("%d" % querymax) >= 0:
@@ -490,23 +490,23 @@ class Windows(OSBase):
 
         if self.sysprepped:
             raise FatalError(
-                "Microsoft's System Preparation Tool has ran on the media. "
+                "Microsoft's System Preparation Tool has ran on the medium. "
                 "Further image customization is not possible.")
 
         if len(self.virtio_state['viostor']) == 0:
             raise FatalError(
-                "The media has no VirtIO SCSI controller driver installed. "
+                "The medium has no VirtIO SCSI controller driver installed. "
                 "Further image customization is not possible.")
 
         if len(self.virtio_state['netkvm']) == 0:
             raise FatalError(
-                "The media has no VirtIO Ethernet Adapter driver installed. "
+                "The medium has no VirtIO Ethernet Adapter driver installed. "
                 "Further image customization is not possible.")
 
         timeout = self.sysprep_params['boot_timeout'].value
         shutdown_timeout = self.sysprep_params['shutdown_timeout'].value
 
-        self.out.info("Preparing media for boot ...", False)
+        self.out.info("Preparing medium for boot ...", False)
 
         with self.mount(readonly=False, silent=True):
 
@@ -601,7 +601,7 @@ class Windows(OSBase):
         finally:
             self.image.enable_guestfs()
 
-            self.out.info("Reverting media boot preparations ...", False)
+            self.out.info("Reverting medium boot preparations ...", False)
             with self.mount(readonly=False, silent=True, fatal=False):
 
                 if not self.ismounted:
@@ -780,7 +780,7 @@ class Windows(OSBase):
 
     def compute_virtio_state(self, directory=None):
         """Returns information about the VirtIO drivers found either in a
-        directory or the media itself if the directory is None.
+        directory or the medium itself if the directory is None.
         """
         state = {}
         for driver in VIRTIO:
@@ -817,7 +817,7 @@ class Windows(OSBase):
 
     def _fetch_virtio_drivers(self, dirname):
         """Examines a directory for VirtIO drivers and returns only the drivers
-        that are suitable for this media.
+        that are suitable for this medium.
         """
         collection = self.compute_virtio_state(dirname)
 
@@ -829,7 +829,7 @@ class Windows(OSBase):
             for inf, content in drvs.items():
                 valid = True
                 found_match = False
-                # Check if the driver is suitable for the input media
+                # Check if the driver is suitable for the input medium
                 for target in content['TargetOSVersions']:
                     if len(target) > len(self.windows_version):
                         match = target.startswith(self.windows_version)
@@ -863,8 +863,8 @@ class Windows(OSBase):
         return collection
 
     def install_virtio_drivers(self, upgrade=True):
-        """Install new VirtIO drivers on the input media. If upgrade is True,
-        then the old drivers found in the media will be removed.
+        """Install new VirtIO drivers on the input medium. If upgrade is True,
+        then the old drivers found in the medium will be removed.
         """
 
         dirname = self.sysprep_params['virtio'].value
@@ -1048,7 +1048,7 @@ class Windows(OSBase):
         self._boot_virtio_vm()
 
     def _boot_virtio_vm(self):
-        """Boot the media and install the VirtIO drivers"""
+        """Boot the medium and install the VirtIO drivers"""
 
         old_windows = self.check_version(6, 1) <= 0
         self.image.disable_guestfs()

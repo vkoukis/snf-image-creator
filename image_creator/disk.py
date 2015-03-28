@@ -59,14 +59,14 @@ def get_tmp_dir(default=None):
 class Disk(object):
     """This class represents a hard disk hosting an Operating System
 
-    A Disk instance never alters the source media it is created from.
+    A Disk instance never alters the source medium it is created from.
     Any change is done on a snapshot created by the device-mapper of
     the Linux kernel.
     """
 
     def __init__(self, source, output, tmp=None):
-        """Create a new Disk instance out of a source media. The source
-        media can be an image file, a block device or a directory.
+        """Create a new Disk instance out of a source medium. The source
+        medium can be an image file, a block device or a directory.
         """
         self._cleanup_jobs = []
         self._images = []
@@ -106,7 +106,7 @@ class Disk(object):
             self._add_cleanup(check_unlink, image)
             bundle.create_image(image)
             return image
-        raise FatalError("Using a directory as media source is supported")
+        raise FatalError("Using a directory as medium source is supported")
 
     def cleanup(self):
         """Cleanup internal data. This needs to be called before the
@@ -125,12 +125,12 @@ class Disk(object):
 
     @property
     def file(self):
-        """Convert the source media into a file."""
+        """Convert the source medium into a file."""
 
         if self._file is not None:
             return self._file
 
-        self.out.info("Examining source media `%s' ..." % self.source, False)
+        self.out.info("Examining source medium `%s' ..." % self.source, False)
         mode = os.stat(self.source).st_mode
         if stat.S_ISDIR(mode):
             self.out.success('looks like a directory')
@@ -139,7 +139,7 @@ class Disk(object):
             self.out.success('looks like an image file')
             self._file = self.source
         elif not stat.S_ISBLK(mode):
-            raise FatalError("Invalid media source. Only block devices, "
+            raise FatalError("Invalid medium source. Only block devices, "
                              "regular files and directories are supported.")
         else:
             self.out.success('looks like a block device')
@@ -148,7 +148,7 @@ class Disk(object):
         return self._file
 
     def snapshot(self):
-        """Creates a snapshot of the original source media of the Disk
+        """Creates a snapshot of the original source medium of the Disk
         instance.
         """
 
@@ -156,10 +156,10 @@ class Disk(object):
             self.out.warn("Snapshotting ignored for host bundling mode.")
             return self.file
 
-        # Examine media file
+        # Examine medium file
         info = image_info(self.file)
 
-        self.out.info("Snapshotting media source ...", False)
+        self.out.info("Snapshotting medium source ...", False)
 
         # Create a qcow2 snapshot for image files that are not raw
         if info['format'] != 'raw':
@@ -196,10 +196,10 @@ class Disk(object):
         self.out.success('done')
         return "/dev/mapper/%s" % snapshot
 
-    def get_image(self, media, **kwargs):
+    def get_image(self, medium, **kwargs):
         """Returns a newly created Image instance."""
-        info = image_info(media)
-        image = Image(media, self.out, format=info['format'], **kwargs)
+        info = image_info(medium)
+        image = Image(medium, self.out, format=info['format'], **kwargs)
         self._images.append(image)
         image.enable()
         return image

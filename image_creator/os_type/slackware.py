@@ -41,7 +41,7 @@ class Slackware(Linux):
         if self.image.g.is_file(name):
             return self.image.g.stat(name)['mode'] & 0400
 
-        self.out.warn('Service %s not found on the media' % service)
+        self.out.warn('Service %s not found on the medium' % service)
         return False
 
 # vim: set sta sts=4 shiftwidth=4 sw=4 et ai :

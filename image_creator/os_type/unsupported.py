@@ -27,11 +27,11 @@ class Unsupported(OSBase):
 
     def collect_metadata(self):
         """Collect metadata about the OS"""
-        self.out.warn("Unable to collect metadata for unsupported media")
+        self.out.warn("Unable to collect metadata for unsupported medium")
 
     def _do_mount(self, readonly):
         """Mount partitions in correct order"""
-        self._mount_error = "not supported for this media"
+        self._mount_error = "not supported for this medium"
         return False
 
 # vim: set sta sts=4 shiftwidth=4 sw=4 et ai :

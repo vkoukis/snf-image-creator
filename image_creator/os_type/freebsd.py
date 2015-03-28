@@ -50,7 +50,7 @@ class Freebsd(Bsd):
         return sshd_enabled
 
     def _do_inspect(self):
-        """Run various diagnostics to check if media is supported"""
+        """Run various diagnostics to check if medium is supported"""
 
         self.out.info('Checking partition table type...', False)
         ptype = self.image.g.part_get_parttype(self.image.guestfs_device)
