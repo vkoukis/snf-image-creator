@@ -452,19 +452,4 @@ def update_sysprep_param(session, name, title=None):
 
     return True
 
-
-def copy_file(d, src, dest):
-    """Copy src file to dest"""
-
-    assert os.path.exists(src), "File: `%s' does not exist" % src
-
-    if os.path.exists(dest):
-        if d.yesno("File: `%s' exists! Are you sure you want to overwrite it?",
-                   defaultno=1, width=WIDTH):
-            return False
-
-    shutil.copyfile(src, dest)
-    d.msgbox("File: `%s' was successfully written!")
-    return True
-
 # vim: set sta sts=4 shiftwidth=4 sw=4 et ai :

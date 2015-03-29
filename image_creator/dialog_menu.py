@@ -34,8 +34,7 @@ from image_creator.kamaki_wrapper import Kamaki, ClientError
 from image_creator.help import get_help_file
 from image_creator.dialog_util import SMALL_WIDTH, WIDTH, \
     update_background_title, confirm_reset, confirm_exit, Reset, \
-    extract_image, add_cloud, edit_cloud, update_sysprep_param, select_file, \
-    copy_file
+    extract_image, add_cloud, edit_cloud, update_sysprep_param, select_file
 
 CONFIGURATION_TASKS = [
     ("Partition table manipulation", ["FixPartitionTable"], lambda x: True),
@@ -979,31 +978,6 @@ def mount(session):
         os.rmdir(mpoint)
 
 
-def show_log(session):
-    """Show the current execution log"""
-
-    d = session['dialog']
-    log = session['image'].out[0].stderr
-
-    log.file.flush()
-
-    while 1:
-        code = d.textbox(log.name, title="Log", width=70, height=40,
-                         extra_button=1, extra_label="Save", ok_label="Close")
-        if code == d.DIALOG_EXTRA:
-            while 1:
-                path = select_file(d, title="Save log as...")
-                if path is None:
-                    break
-                if os.path.isdir(path):
-                    continue
-
-                if copy_file(d, log.name, path):
-                    break
-        else:
-            return
-
-
 def customization_menu(session):
     """Show image customization menu"""
     d = session['dialog']
@@ -1057,7 +1031,7 @@ def main_menu(session):
     default_item = "Customize"
 
     actions = {"Customize": customization_menu, "Register": kamaki_menu,
-               "Extract": extract_image, "Log": show_log}
+               "Extract": extract_image}
     title = "Image Creator for Synnefo (snf-image-creator v%s)" % version
     while 1:
         (code, choice) = d.menu(

@@ -32,8 +32,11 @@ import time
 import termios
 import traceback
 import tempfile
+import logging
 
 from image_creator import __version__ as version
+from image_creator import constants
+from image_creator.log import SetupLogging
 from image_creator.util import FatalError, ensure_root
 from image_creator.output.cli import SimpleOutput
 from image_creator.output.dialog import GaugeOutput
@@ -46,6 +49,8 @@ from image_creator.dialog_util import WIDTH, confirm_exit, Reset, \
     update_background_title, select_file
 
 PROGNAME = os.path.basename(sys.argv[0])
+
+log = logging.getLogger(__name__)
 
 
 def create_image(d, medium, out, tmp, snapshot):
@@ -168,7 +173,6 @@ def dialog_main(medium, **kwargs):
 
     tmpdir = kwargs['tmpdir'] if 'tmpdir' in kwargs else None
     snapshot = kwargs['snapshot'] if 'snapshot' in kwargs else True
-    logfile = kwargs['logfile'] if 'logfile' in kwargs else None
     syslog = kwargs['syslog'] if 'syslog' in kwargs else False
 
     # In openSUSE dialog is buggy under xterm
@@ -210,37 +214,29 @@ def dialog_main(medium, **kwargs):
             continue
         break
 
-    tmplog = None if logfile else tempfile.NamedTemporaryFile(prefix='fatal-',
-                                                              delete=False)
+    # FIXME: It does not make sense to pass both the dialog instance
+    # explicitly, and Output instances separately. The called function
+    # shouldn't have to know that it is using a dialog instance, or call
+    # pythondialog-specific methods, but use the Output instance via a
+    # defined interface.
 
+    # This is an ugly workaround, until the separation of logging and Output
+    # frontends is complete: Just make logging through Output a no-op for now,
+    # by passing an empty list.
     logs = []
     try:
-        stream = logfile if logfile else tmplog
-        logs.append(SimpleOutput(colored=False, stderr=stream, stdout=stream))
-        if syslog:
-            logs.append(SyslogOutput())
-
         while 1:
             try:
                 out = CompositeOutput(logs)
-                out.info("Starting %s v%s ..." % (PROGNAME, version))
                 ret = create_image(d, medium, out, tmpdir, snapshot)
                 break
             except Reset:
-                for log in logs:
-                    log.info("Resetting everything ...")
+                log.info("Resetting everything ...")
     except FatalError as error:
-        for log in logs:
-            log.error(str(error))
-        msg = 'A fatal error occured. See %s for a full log.' % log.stderr.name
+        log.error("Fatal: " + str(error))
+        msg = "A fatal error has occured: " + str(error)
         d.infobox(msg, width=WIDTH, title="Fatal Error")
         return 1
-    else:
-        if tmplog:
-            os.unlink(tmplog.name)
-    finally:
-        if tmplog:
-            tmplog.close()
 
     return ret
 
@@ -257,22 +253,30 @@ def main():
          " snapshot of INPUT_MEDIUM, and will not modify its contents.")
     e = ("%(prog)s requires root privileges.")
 
-    parser = argparse.ArgumentParser(version=version, description=d, epilog=e)
+    parser = argparse.ArgumentParser(description=d, epilog=e)
 
-    parser.add_argument("-l", "--logfile", metavar="FILE", type=str,
-                        dest="logfile", default=None,
-                        help="Log all messages to FILE")
-    parser.add_argument("--syslog", dest="syslog", default=False,
-                        help="Also log to syslog", action="store_true")
-    parser.add_argument("--tmpdir", metavar="DIR", type=str, dest="tmpdir",
+    parser.add_argument("--tmpdir", metavar="TMPDIR", type=str, dest="tmpdir",
                         default=None,
-                        help="Create large temporary image files under DIR")
+                        help=("Create large temporary files under TMPDIR."
+                              " Default is to use a randomly-named temporary"
+                              " directory under /var/tmp or /tmp."))
+    parser.add_argument("-l", "--logfile", metavar="LOGFILE", type=str,
+                        dest="logfile", default=constants.DEFAULT_LOGFILE,
+                        help=("Log all messages to LOGFILE."
+                              " Default: %(default)s"))
+    parser.add_argument("--syslog", dest="syslog", default=False,
+                        action="store_true", help="Also log to syslog")
+    parser.add_argument("-v", "--verbose", dest="verbose", default=False,
+                        action="store_true",
+                        help="Be verbose, log everything to ease debugging")
     parser.add_argument("--no-snapshot", dest="snapshot", default=True,
                         action="store_false",
                         help=("Do not work on a snapshot, but modify the input"
                               " medium directly instead. DO NOT USE THIS"
                               " OPTION UNLESS YOU REALLY KNOW WHAT YOU ARE"
                              " DOING. THIS WILL ALTER THE ORIGINAL MEDIUM!"))
+    parser.add_argument("-V", "--version", action="version",
+                        version=version)
     parser.add_argument(metavar="INPUT_MEDIUM",
                         nargs='?', dest="medium", type=str, default=None,
                         help=("Use INPUT_MEDIUM as the template for"
@@ -288,11 +292,12 @@ def main():
         parser.error("Argument `%s' to --tmpdir must be a directory"
                      % args.tmpdir)
 
-    try:
-        logfile = open(args.logfile, 'w') if args.logfile is not None else None
-    except IOError as error:
-        parser.error("Unable to open logfile `%s' for writing. Reason: %s" %
-                     (args.logfile, error.strerror))
+    # Setup logging and get a logger as early as possible.
+    # FIXME: Must turn on redirect_stderr, but need to verify that only
+    # errors/diagnostics and not user-visible output goes to stderr
+    SetupLogging(PROGNAME, logfile=args.logfile, debug=args.verbose,
+                 use_syslog=args.syslog, redirect_stderr_fd=False)
+    log.info("%s v%s starting..." % (PROGNAME, version))
 
     # Ensure we run on a terminal, so we can use termios calls liberally
     if not (os.isatty(sys.stdin.fileno()) and os.isatty(sys.stdout.fileno())):
@@ -302,10 +307,9 @@ def main():
 
     # Save the terminal attributes
     attr = termios.tcgetattr(sys.stdin.fileno())
-
     try:
         try:
-            ret = dialog_main(args.medium, logfile=logfile, tmpdir=args.tmpdir,
+            ret = dialog_main(args.medium, tmpdir=args.tmpdir,
                               snapshot=args.snapshot, syslog=args.syslog)
         finally:
             # Restore the terminal attributes. If an error occurs make sure
@@ -328,7 +332,10 @@ def main():
             termios.tcflush(sys.stdin.fileno(), termios.TCIOFLUSH)
             termios.tcsetattr(sys.stdin.fileno(), termios.TCSANOW, attr)
     except:
-        # Clear the screen and output the traceback
+        # An unexpected exception has occured.
+        # Ensure the exception is logged,
+        # then clear the screen and output the traceback.
+        log.exception("Internal error. Unexpected Exception:")
         sys.stdout.flush()
         sys.stdout.write('\033[2J')  # Erase Screen
         sys.stdout.write('\033[H')  # Cursor Home
@@ -338,16 +345,11 @@ def main():
         sys.stderr.write("An unexpected exception has occured. Please"
                          " include the following text in any bug report:\n\n")
         sys.stderr.write(exception)
+        sys.stderr.write(("\nLogfile `%s' may contain more information about"
+                          " the cause of this error.\n\n" % args.logfile))
         sys.stderr.flush()
 
-        if logfile is not None:
-            logfile.write(exception)
-
         sys.exit(3)
-
-    finally:
-        if logfile is not None:
-            logfile.close()
 
     sys.exit(ret)
 
