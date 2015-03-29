@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011-2014 GRNET S.A.
+# Copyright (C) 2015 Vangelis Koukis <vkoukis@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,32 +29,74 @@ import tempfile
 import uuid
 import shutil
 
+import logging
+log = logging.getLogger(__name__)
+
 dd = get_command('dd')
 dmsetup = get_command('dmsetup')
 losetup = get_command('losetup')
 blockdev = get_command('blockdev')
 
 
-def get_tmp_dir(default=None):
-    """Check tmp directory candidates and return the one with the most
-    available space.
+def get_tmp_dir(tmpdir=None):
+    """Try to guess a suitable directory for holding temporary files.
+
+    Try to guess a suitable directory for holding (rather big) temporary
+    files, including the snapshot file used to protect the source medium.
+
     """
-    if default is not None:
-        return default
 
-    TMP_CANDIDATES = ['/var/tmp', os.path.expanduser('~'), '/mnt']
+    # Don't try to outsmart the user, if they have already made a choice
+    if tmpdir is not None:
+        log.debug("Using user-specified value `%s' as tmp directory", tmpdir)
+        return tmpdir
 
-    space = [free_space(t) for t in TMP_CANDIDATES]
+    # If the TMPDIR environment has been set, use it
+    if "TMPDIR" in os.environ:
+        tmpdir = os.environ["TMPDIR"]
+        log.debug(("Using value of TMPDIR environment variable as tmp"
+                   "directory"), tmpdir)
+        return tmpdir
 
-    max_idx = 0
-    max_val = space[0]
-    for i, val in zip(range(len(space)), space):
-        if val > max_val:
-            max_val = val
-            max_idx = i
+    # Otherwise, make a list of candidate locations (all mountpoints) and pick
+    # the directory with the most available space, provided it is mounted
+    # read-write. The standard /var/tmp, /tmp are added to the end of the list,
+    # to ensure they are preferred over the mountpoint of the filesystem they
+    # belong to.
+    #
+    # FIXME: Enumerating mount points using /etc/mtab is Linux-specific.
+    # FIXME: Perhaps omit remote directories, e.g., NFS/SMB mounts?
+    #        Must use stafs(2) for this, statvfs(2) does not return f_type
 
-    # Return the candidate path with more available space
-    return TMP_CANDIDATES[max_idx]
+    with open("/etc/mtab", "r") as mtab:
+        mounts = [l.strip() for l in mtab.readlines()]
+    points = [m.split(" ")[1] for m in mounts] + ["/tmp", "/var/tmp"]
+
+    # FIXME:
+    # Disable the above algorithm for the time being, and reduce the
+    # list of candidate directories to the standard /var/tmp, /tmp directories.
+    #
+    # It is un-intuitive and completely unexpected by the user to end up
+    # using a random directory under /home, or under /mnt to hold temporary
+    # files. Perhaps re-enable it when we actually have the ability to
+    # propose these alternate locations to the user, and have them make
+    # choose explicitly.
+    #
+    points = ["/var/tmp", "/tmp"]
+    log.debug("Trying to guess a suitable tmpdir, candidates are: %s",
+              ", ".join(points))
+
+    stats = [os.statvfs(p) for p in points]
+    rwzip = [z for z in zip(points, stats) if
+                z[1].f_flag & os.ST_RDONLY == 0]
+    # See http://plug.org/pipermail/plug/2010-August/023606.html
+    # on why calculation of free space is based on f_frsize
+    sortedzip = sorted(rwzip, key=lambda z: z[1].f_bavail * z[1].f_frsize,
+                       reverse=True)
+    tmpdir = sortedzip[0][0]
+
+    log.debug("Using directory `%s' as tmp directory", tmpdir)
+    return tmpdir
 
 
 class Disk(object):
